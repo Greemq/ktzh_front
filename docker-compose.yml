@@ -26,6 +26,8 @@ services:
     restart: always
     environment:
       - NUXT_APP_BASE_URL=/front/
+      - HOST=0.0.0.0
+      - PORT=3000
     depends_on:
       - db
 

@@ -117,7 +117,7 @@ const records = computed(() => (Array.isArray(allData.value) ? allData.value : [
 
 const INITIAL_FILTERS = { group: [], country: [], junction: [], sender: [] }
 const page = ref(1)
-const pageCount = ref(20)
+const pageCount = ref(10)
 const activeFilters = ref({ ...INITIAL_FILTERS })
 
 const columns = [

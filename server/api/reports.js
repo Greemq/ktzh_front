@@ -1,18 +1,12 @@
-// server/api/reports.js
 import pg from "pg";
 
-// Используем Pool для стабильности
+// Nuxt автоматически подтянет DATABASE_URL из .env или из environment Docker
 const pool = new pg.Pool({
-  user: "user",
-  password: "password",
-  host: "localhost", // или 'db', если в Docker
-  database: "ktzh",
-  port: 5432
+  connectionString: process.env.DATABASE_URL
 });
 
 export default defineEventHandler(async (event) => {
   try {
-    // 1. Планы 3 страны (Сводная)
     const plansSql = `
       SELECT 
         "Номенклатурная группа" as group_name,
@@ -24,7 +18,6 @@ export default defineEventHandler(async (event) => {
       ORDER BY 1, 2
     `;
 
-    // 2. Экспорт через МГСП
     const mgspSql = `
       SELECT 
         "Выходной стык КЗХ" as junction,
@@ -37,7 +30,6 @@ export default defineEventHandler(async (event) => {
       ORDER BY 1, 2, 3
     `;
 
-    // 3, 4, 5 - Детальные списки
     const coalSql = `SELECT "НОД", "Станция погрузки", "Номер плана", "Грузоотправитель", "Наименование груза (ЕТСНГ)", "Страна назначения", "Выходной стык КЗХ", "К-во вагонов заявлено" as wagons, "К-во тонн заявлено" as tons FROM shipments WHERE "Наименование груза (ЕТСНГ)" ILIKE '%уголь%'`;
 
     const barleySql = `SELECT "НОД", "Станция погрузки", "Номер плана", "Грузоотправитель", "Наименование груза (ЕТСНГ)", "Страна назначения", "Выходной стык КЗХ", "К-во вагонов заявлено" as wagons, "К-во тонн заявлено" as tons FROM shipments WHERE "Выходной стык КЗХ" = 'Актау-Порт (перев., эксп.)' AND "Наименование груза (ЕТСНГ)" ILIKE '%Ячмень%'`;

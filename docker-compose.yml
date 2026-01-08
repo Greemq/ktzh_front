@@ -10,9 +10,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # Бэкенд на Python (Streamlit)
   streamlit_app:
-    build: ./ktzh_python
+    build: ../ktzh_python
     container_name: ktzh_back
     restart: always
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --server.baseUrlPath=back
@@ -21,10 +20,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/ktzh
 
-  # Фронтенд на Nuxt
   nuxt_app:
     build:
-      context: ./ktzh_front
+      context: .
       dockerfile: Dockerfile.nuxt
     container_name: ktzh_front
     restart: always
@@ -33,7 +31,6 @@ services:
     depends_on:
       - db
 
-  # Nginx - единственный входной порт
   gateway:
     image: nginx:alpine
     container_name: ktzh_gateway

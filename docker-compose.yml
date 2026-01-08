@@ -17,8 +17,6 @@ services:
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --server.baseUrlPath=back
     depends_on:
       - db
-    environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/ktzh
 
   nuxt_app:
     build:

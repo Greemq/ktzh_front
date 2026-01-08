@@ -28,6 +28,7 @@ services:
       - NUXT_APP_BASE_URL=/front/
       - HOST=0.0.0.0
       - PORT=3000
+      - DATABASE_URL=postgresql://user:password@db:5432/ktzh
     depends_on:
       - db
 

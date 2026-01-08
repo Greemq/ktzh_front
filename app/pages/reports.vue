@@ -124,7 +124,6 @@ const { data, pending } = await useFetch('/api/reports')
 
 const activeTab = ref(1)
 
-// Обновленные бледные стили (Soft Palette)
 const tabStlyes = {
     blue: {
         active: 'bg-blue-50/80 border-blue-200',
@@ -192,7 +191,6 @@ const reportData = computed(() => {
     const defaultData = { plans: { months: [], rows: [] }, mgsp: { months: [], rows: [] } }
     if (!data.value) return defaultData
 
-    // 1. Обработка Планов
     const pMonths = [...new Set(data.value.plans?.map(p => p.month_label) || [])]
     const pGroups = {}
     data.value.plans?.forEach(item => {
@@ -206,7 +204,6 @@ const reportData = computed(() => {
     const pTotals = { name: 'ИТОГО' }
     pMonths.forEach(m => pTotals[m] = pRows.reduce((s, r) => s + (r[m] || 0), 0))
 
-    // 2. Исправленная логика МГСП (Чтобы данные появились во втором табе)
     const mMonths = [...new Set(data.value.mgsp?.map(p => p.month_label) || [])]
     const mPivoted = {}
     data.value.mgsp?.forEach(item => {

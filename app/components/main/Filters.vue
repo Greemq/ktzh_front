@@ -12,7 +12,7 @@
                         </label>
                     </div>
 
-                    <USelectMenu v-model="modelValue[key]" :options="list" multiple searchable placeholder="Все"
+                    <USelectMenu v-model="modelValue[key]" :items="list" multiple searchable placeholder="Все"
                         class="w-full" :uiMenu="{
                             rounded: 'rounded-2xl',
                             shadow: 'shadow-2xl',

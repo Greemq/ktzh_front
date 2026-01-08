@@ -1,6 +1,5 @@
 import pg from "pg";
 
-// Nuxt автоматически подтянет DATABASE_URL из .env или из environment Docker
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL
 });

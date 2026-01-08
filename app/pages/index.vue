@@ -1,255 +1,172 @@
 <template>
-    <div class="flex flex-col h-screen bg-gray-50 font-sans text-gray-900 overflow-hidden">
-
-        <div class="p-6 space-y-6 flex flex-col flex-1 min-h-0">
-
-            <header
-                class="flex-none flex justify-between items-center bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+    <ClientOnly>
+        <div class="p-6 bg-[#f9fafb] space-y-6 text-gray-900 font-sans">
+            <div class="flex justify-between items-center px-2">
                 <div>
-                    <h1 class="text-2xl font-black uppercase tracking-tight text-slate-800 leading-none">Экспортный
-                        отчет
-                    </h1>
+                    <h1 class="text-3xl font-black uppercase tracking-tighter text-gray-800">Мониторинг ГУ-12</h1>
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Аналитическая панель
+                        управления</p>
                 </div>
-                <button @click="refresh"
-                    class="px-5 py-2.5 bg-slate-800 text-white rounded-lg text-base font-semibold hover:bg-slate-700 transition flex items-center gap-2">
-                    <span v-if="pending" class="animate-spin text-xl">↻</span>
-                    <span>Обновить данные</span>
-                </button>
-            </header>
-
-            <div class="flex-none grid grid-cols-2 md:grid-cols-5 gap-4">
-                <button v-for="tab in tabsConfig" :key="tab.id" @click="activeTab = tab.id" :class="[
-                    'p-4 rounded-xl border transition-all duration-200 text-left shadow-sm',
-                    activeTab === tab.id
-                        ? `${tab.activeClass} border-transparent ring-2 ring-offset-2 ring-slate-400 scale-[1.01]`
-                        : 'bg-white border-gray-200 hover:border-slate-300 opacity-80'
-                ]">
-                    <div class="text-xs font-bold uppercase tracking-wider mb-1"
-                        :class="activeTab === tab.id ? 'text-white/80' : 'text-slate-400'">
-                        Отчет {{ tab.id }}
-                    </div>
-                    <div class="text-base font-black truncate"
-                        :class="activeTab === tab.id ? 'text-white' : 'text-slate-700'">
-                        {{ tab.title }}
-                    </div>
-                </button>
+                <div
+                    class="bg-[#22C55E] text-white px-6 py-3 rounded-2xl shadow-lg shadow-green-200 flex items-center gap-4 transition-all">
+                    <span class="text-[10px] font-black uppercase opacity-70 tracking-widest">Найдено записей:</span>
+                    <span class="text-2xl font-black">{{ filteredData.length }}</span>
+                </div>
             </div>
 
-            <div v-if="pending"
-                class="flex-1 flex items-center justify-center text-slate-400 animate-pulse bg-white rounded-2xl border border-gray-200 text-lg">
-                Загрузка данных...
+            <MainFilters v-model="activeFilters" :options="filterOptions" @reset="resetFilters" />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div v-for="kpi in kpis" :key="kpi.label"
+                    class="bg-white p-5 rounded-[1.5rem] border border-gray-100 shadow-sm flex items-center justify-between group hover:border-green-200 transition-all">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase font-black tracking-widest">{{ kpi.label }}</p>
+                        <p class="text-2xl font-black text-gray-800 mt-1">{{ kpi.value }}</p>
+                    </div>
+                    <div :class="`p-3 rounded-xl ${kpi.bg} ${kpi.color}`">
+                        <UIcon :name="kpi.icon" class="w-7 h-7" />
+                    </div>
+                </div>
             </div>
 
-            <div v-else-if="data"
-                class="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-gray-200 min-h-0 overflow-hidden">
+            <MainGraphs :records="filteredData" />
 
-                <div class="flex-none p-5 border-b border-gray-100 z-20" :class="currentHeader.bg">
-                    <h2 class="font-bold text-base" :class="currentHeader.text">
-                        {{ activeTab }}. {{ currentHeader.title }}
-                    </h2>
+            <div class="bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-xl shadow-gray-200/40">
+                <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-white">
+                    <h3 class="font-black text-gray-700 uppercase text-sm tracking-wider flex items-center gap-2">
+                        <div class="w-2 h-2 bg-[#22C55E] rounded-full"></div>
+                        Реестр планов погрузки
+                    </h3>
+                    <div class="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
+                        <span class="text-[10px] text-gray-400 font-black uppercase">Строк на страницу:</span>
+                        <select v-model="pageCount"
+                            class="bg-transparent text-xs font-bold outline-none cursor-pointer text-green-600">
+                            <option :value="10">10</option>
+                            <option :value="20">20</option>
+                            <option :value="50">50</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="flex-1 overflow-auto custom-scrollbar relative">
-
-                    <table v-if="activeTab === 1" class="min-w-full border-separate border-spacing-0">
-                        <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left border-collapse">
+                        <thead
+                            class="bg-gray-50 text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] border-b border-gray-100">
                             <tr>
-                                <th
-                                    class="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    Группа</th>
-                                <th v-for="m in reportData.plans.months" :key="m"
-                                    class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    {{ m }}</th>
+                                <th v-for="col in columns" :key="col.key" class="px-8 py-5">{{ col.label }}</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="row in reportData.plans.rows" :key="row.name"
-                                :class="row.name === 'ИТОГО' ? 'bg-blue-50 font-bold sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]' : 'hover:bg-gray-50'">
-                                <td class="px-4 py-3 text-sm text-slate-700 bg-inherit border-b border-gray-100">{{
-                                    row.name }}</td>
-                                <td v-for="m in reportData.plans.months" :key="m"
-                                    class="px-4 py-3 text-sm text-right tabular-nums bg-inherit border-b border-gray-100">
-                                    {{ fmt(row[m]) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <table v-if="activeTab === 2" class="min-w-full border-separate border-spacing-0">
-                        <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                            <tr>
-                                <th
-                                    class="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    Стык</th>
-                                <th
-                                    class="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    Группа</th>
-                                <th v-for="m in reportData.mgsp.months" :key="m"
-                                    class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    {{ m }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="(row, idx) in reportData.mgsp.rows" :key="idx" class="hover:bg-gray-50 text-sm">
-                                <td class="px-4 py-3 font-medium text-slate-900 bg-inherit border-b border-gray-100">{{
-                                    row.junction }}</td>
-                                <td class="px-4 py-3 text-slate-500 bg-inherit border-b border-gray-100">{{ row.group }}
+                        <tbody class="divide-y divide-gray-50 bg-white">
+                            <tr v-for="(row, idx) in paginatedRows" :key="idx"
+                                class="hover:bg-green-50/30 transition-all group">
+                                <td class="px-8 py-5 text-sm font-bold text-gray-700 group-hover:text-[#22C55E]">{{
+                                    row.plan_number }}</td>
+                                <td class="px-8 py-5 text-sm text-gray-500 font-medium">{{ row.sender }}</td>
+                                <td class="px-8 py-5 text-sm text-gray-500 font-medium italic">{{ row.country }}</td>
+                                <td class="px-8 py-5 text-sm font-black text-gray-800 text-right">
+                                    <span
+                                        class="bg-gray-100 group-hover:bg-green-100 group-hover:text-green-700 px-3 py-1 rounded-lg transition-colors">{{
+                                        row.tons }}</span>
                                 </td>
-                                <td v-for="m in reportData.mgsp.months" :key="m"
-                                    class="px-4 py-3 text-right tabular-nums bg-inherit border-b border-gray-100 font-bold text-indigo-600">
-                                    {{ fmt(row[m]) }}</td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <table v-if="activeTab >= 3" class="min-w-full border-separate border-spacing-0">
-                        <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                            <tr>
-                                <th
-                                    class="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    НОД</th>
-                                <th
-                                    class="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    Станция</th>
-                                <th
-                                    class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    Вагоны</th>
-                                <th
-                                    class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                                    Тонны</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 text-sm">
-                            <tr v-for="(row, i) in currentDetailedTabItems" :key="i" class="hover:bg-gray-50">
-                                <td class="px-4 py-3 bg-inherit border-b border-gray-100">{{ row['НОД'] }}</td>
-                                <td class="px-4 py-3 bg-inherit border-b border-gray-100">{{ row['Станция погрузки'] }}
-                                </td>
-                                <td
-                                    class="px-4 py-3 text-right font-bold tabular-nums text-slate-700 bg-inherit border-b border-gray-100">
-                                    {{ fmt(row.wagons || row.wagon_sum) }}</td>
-                                <td
-                                    class="px-4 py-3 text-right tabular-nums bg-inherit border-b border-gray-100 text-slate-500">
-                                    {{ fmt(row.tons || row.tonn_sum) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div v-if="filteredData.length === 0" class="p-32 text-center">
+                        <UIcon name="i-heroicons-inbox" class="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                        <p class="text-gray-300 font-black uppercase tracking-widest text-xs">Данные отсутствуют</p>
+                    </div>
+                </div>
 
+                <div class="p-6 border-t border-gray-50 flex items-center justify-between bg-gray-50/30">
+                    <div class="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                        Страница <span class="text-[#22C55E]">{{ page }}</span> из {{ totalPages }}
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button @click="page--" :disabled="page <= 1"
+                            class="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:border-green-200 hover:text-green-600 transition-all shadow-sm">
+                            <UIcon name="i-heroicons-chevron-left" class="w-4 h-4" /> Назад
+                        </button>
+                        <button @click="page++" :disabled="page >= totalPages"
+                            class="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:border-green-200 hover:text-green-600 transition-all shadow-sm">
+                            Вперед
+                            <UIcon name="i-heroicons-chevron-right" class="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <template #fallback>
+            <div class="h-screen w-full flex items-center justify-center bg-[#f9fafb]">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="w-12 h-12 border-4 border-[#22C55E] border-t-transparent rounded-full animate-spin">
+                    </div>
+                    <span class="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400">Синхронизация</span>
+                </div>
+            </div>
+        </template>
+    </ClientOnly>
 </template>
 
 <script setup>
-const { data, pending, refresh } = await useFetch('/api/reports')
+definePageMeta({ layout: 'base-layout' })
 
-const activeTab = ref(1)
+const { data: allData } = await useFetch('/api/all-data')
+const records = computed(() => (Array.isArray(allData.value) ? allData.value : []))
 
-const tabsConfig = [
-    { id: 1, title: 'Планы 3 страны', activeClass: 'bg-blue-600' },
-    { id: 2, title: 'Экспорт МГСП', activeClass: 'bg-indigo-600' },
-    { id: 3, title: 'Уголь (ЕТСНГ)', activeClass: 'bg-slate-800' },
-    { id: 4, title: 'Ячмень (Актау)', activeClass: 'bg-orange-500' },
-    { id: 5, title: 'Порты КЗХ', activeClass: 'bg-teal-600' },
+const INITIAL_FILTERS = { group: [], country: [], junction: [], sender: [] }
+const page = ref(1)
+const pageCount = ref(20)
+const activeFilters = ref({ ...INITIAL_FILTERS })
+
+const columns = [
+    { key: 'plan_number', label: '№ Плана' },
+    { key: 'sender', label: 'Отправитель' },
+    { key: 'country', label: 'Страна' },
+    { key: 'tons', label: 'Тонны (тн)' }
 ]
 
-// Вся логика заголовков вынесена сюда, чтобы избежать ошибок с кавычками в шаблоне
-const currentHeader = computed(() => {
-    const titles = {
-        1: 'Планы 3 страны (вагоны)',
-        2: 'Экспорт через МГСП (вагоны)',
-        3: 'Уголь (детально)',
-        4: 'Ячмень через Актау (детально)',
-        5: 'Все грузы через порты'
-    }
-    const styles = {
-        1: { bg: 'bg-blue-50/50', text: 'text-blue-800' },
-        2: { bg: 'bg-indigo-50/50', text: 'text-indigo-800' },
-        3: { bg: 'bg-slate-50', text: 'text-slate-800' },
-        4: { bg: 'bg-orange-50', text: 'text-orange-800' },
-        5: { bg: 'bg-teal-50', text: 'text-teal-800' }
-    }
-    return {
-        title: titles[activeTab.value],
-        bg: styles[activeTab.value].bg,
-        text: styles[activeTab.value].text
-    }
-})
+const filterOptions = computed(() => ({
+    group: [...new Set(records.value.map(r => String(r['Номенклатурная группа'] || '')).filter(Boolean))],
+    country: [...new Set(records.value.map(r => String(r['Страна назначения'] || '')).filter(Boolean))],
+    junction: [...new Set(records.value.map(r => String(r['Выходной стык КЗХ'] || '')).filter(Boolean))],
+    sender: [...new Set(records.value.map(r => String(r['Грузоотправитель'] || '')).filter(Boolean))]
+}))
 
-const currentDetailedTabItems = computed(() => {
-    if (activeTab.value === 3) return data.value?.coal || []
-    if (activeTab.value === 4) return data.value?.barley || []
-    if (activeTab.value === 5) return data.value?.ports || []
-    return []
-})
-
-const fmt = (v) => v ? Number(v).toLocaleString('ru-RU') : '0'
-
-const reportData = computed(() => {
-    if (!data.value) return { plans: { months: [], rows: [] }, mgsp: { months: [], rows: [] } }
-
-    // Логика Планов
-    const pMonths = [...new Set(data.value.plans.map(p => p.month_label))]
-    const pGroups = {}
-    data.value.plans.forEach(item => {
-        if (!pGroups[item.group_name]) {
-            pGroups[item.group_name] = { name: item.group_name }
-            pMonths.forEach(m => pGroups[item.group_name][m] = 0)
-        }
-        pGroups[item.group_name][item.month_label] = Number(item.wagon_sum)
+const filteredData = computed(() => {
+    return records.value.filter(r => {
+        const f = activeFilters.value
+        return (f.group.length === 0 || f.group.includes(String(r['Номенклатурная группа']))) &&
+            (f.country.length === 0 || f.country.includes(String(r['Страна назначения']))) &&
+            (f.junction.length === 0 || f.junction.includes(String(r['Выходной стык КЗХ']))) &&
+            (f.sender.length === 0 || f.sender.includes(String(r['Грузоотправитель'])))
     })
-    const pRows = Object.values(pGroups)
-    const pTotals = { name: 'ИТОГО' }
-    pMonths.forEach(m => pTotals[m] = pRows.reduce((s, r) => s + (r[m] || 0), 0))
-
-    // Логика МГСП
-    const mMonths = [...new Set(data.value.mgsp.map(p => p.month_label))]
-    const mPivoted = {}
-    data.value.mgsp.forEach(item => {
-        const key = `${item.junction}|${item.group_name}`
-        if (!mPivoted[key]) {
-            mPivoted[key] = { junction: item.junction, group: item.group_name }
-            mMonths.forEach(m => mPivoted[key][m] = 0)
-        }
-        mPivoted[key][item.month_label] = Number(item.wagons)
-    })
-
-    return {
-        plans: { months: pMonths, rows: [...pRows, pTotals] },
-        mgsp: { months: mMonths, rows: Object.values(mPivoted) }
-    }
 })
+
+const totalPages = computed(() => Math.ceil(filteredData.value.length / pageCount.value) || 1)
+
+const paginatedRows = computed(() => {
+    const start = (page.value - 1) * pageCount.value
+    return filteredData.value.slice(start, start + pageCount.value).map(r => ({
+        plan_number: r['Номер плана'] || '-',
+        sender: r['Грузоотправитель'] || '-',
+        country: r['Страна назначения'] || '-',
+        tons: Number(r['К-во тонн заявлено'] || 0).toLocaleString()
+    }))
+})
+
+const kpis = computed(() => [
+    { label: 'Всего тонн', value: filteredData.value.reduce((a, r) => a + Number(r['К-во тонн заявлено'] || 0), 0).toLocaleString(), icon: 'i-heroicons-scale', bg: 'bg-green-50', color: 'text-green-600' },
+    { label: 'Всего вагонов', value: filteredData.value.reduce((a, r) => a + Number(r['К-во вагонов заявлено'] || 0), 0).toLocaleString(), icon: 'i-heroicons-truck', bg: 'bg-emerald-50', color: 'text-emerald-600' },
+    { label: 'Экспедиторы', value: new Set(filteredData.value.map(r => r['Экспедитор КЗХ'])).size, icon: 'i-heroicons-briefcase', bg: 'bg-lime-50', color: 'text-lime-600' },
+    { label: 'Пункты назначения', value: new Set(filteredData.value.map(r => r['Станция назначения'])).size, icon: 'i-heroicons-map-pin', bg: 'bg-teal-50', color: 'text-teal-600' }
+])
+
+const resetFilters = () => {
+    activeFilters.value = { ...INITIAL_FILTERS }
+    page.value = 1
+}
+
+watch([activeFilters, pageCount], () => page.value = 1, { deep: true })
 </script>
-
-<style scoped>
-/* Отключаем скролл у body на уровне браузера */
-:global(html, body) {
-    height: 100%;
-    overflow: hidden;
-}
-
-/* Красивый тонкий скроллбар */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* Фиксация шапок (Sticky Header) */
-th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-</style>

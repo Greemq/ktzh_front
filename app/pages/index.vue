@@ -3,7 +3,7 @@
         <div class="p-6 bg-[#f9fafb] space-y-6 text-gray-900 font-sans">
             <div class="flex justify-between items-center px-2">
                 <div>
-                    <h1 class="text-3xl font-black uppercase tracking-tighter text-gray-800">Мониторинг ГУ-12</h1>
+                    <h1 class="text-3xl font-black uppercase tracking-tighter text-gray-800">Мониторинг</h1>
                     <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Аналитическая панель
                         управления</p>
                 </div>
@@ -66,7 +66,7 @@
                                 <td class="px-8 py-5 text-sm font-black text-gray-800 text-right">
                                     <span
                                         class="bg-gray-100 group-hover:bg-green-100 group-hover:text-green-700 px-3 py-1 rounded-lg transition-colors">{{
-                                        row.tons }}</span>
+                                            row.tons }}</span>
                                 </td>
                             </tr>
                         </tbody>
